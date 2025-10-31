@@ -5,7 +5,7 @@ from datetime import datetime
 import json
 
 # 配置信息
-GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbZ1ae78L_9Tmlsanz1hPAFQYuh9VgI-MBvVEwMdUE5FyOZgbZF1zcE3-rhZqAvf7TA/exec"
+GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwLmjPdiVUHx00h9yjCF4nUVVUJ6gJsl3VsUQTGOc3YCORLucU3CUqM2_frlrYhKYZI/exec"
 DEEPSEEK_API_KEY = os.getenv('DEEPSEEK_API_KEY')
 
 def fetch_stock_data():
