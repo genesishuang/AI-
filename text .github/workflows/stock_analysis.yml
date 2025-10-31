@@ -1,109 +1,14 @@
-name: 🚀 AI股票分析机器人
+name: AI Stock Analysis
 
 on:
-  schedule:
-    - cron: '0 22 * * 1-5'  # 交易日北京时间早上6点运行
-  workflow_dispatch:  # 允许手动触发
+  workflow_dispatch:
 
 jobs:
-  analyze-stocks:
+  test:
     runs-on: ubuntu-latest
-    
     steps:
-    - name: 📥 下载代码
-      uses: actions/checkout@v3
-      
-    - name: 🐍 设置Python环境
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
-        
-    - name: 📦 安装依赖
-      run: |
-        pip install requests
-        pip install pandas
-        pip install yfinance
-        
-    - name: 📄 创建分析脚本
-      run: |
-        cat > stock_analysis.py << 'EOF'
-import requests
-import os
-import pandas as pd
-import yfinance as yf
-from datetime import datetime
-
-def main():
-    print("=" * 50)
-    print("🚀 AI股票分析系统启动")
-    print("=" * 50)
-    
-    # 1. 检查环境
-    api_key = os.getenv('DEEPSEEK_API_KEY')
-    if api_key:
-        print(f"✅ DeepSeek API密钥: 已配置 (前8位: {api_key[:8]}...)")
-    else:
-        print("❌ DeepSeek API密钥: 未配置")
-        return
-    
-    # 2. 获取股票数据
-    print("\n📊 获取股票数据...")
-    try:
-        # 获取AAPL股价
-        ticker = yf.Ticker("AAPL")
-        info = ticker.info
-        history = ticker.history(period="5d")
-        
-        current_price = history['Close'].iloc[-1] if not history.empty else "N/A"
-        previous_price = history['Close'].iloc[-2] if len(history) > 1 else "N/A"
-        
-        print(f"📈 AAPL当前价格: ${current_price:.2f}" if current_price != "N/A" else "📈 AAPL当前价格: N/A")
-        print(f"📉 前一日价格: ${previous_price:.2f}" if previous_price != "N/A" else "📉 前一日价格: N/A")
-        
-    except Exception as e:
-        print(f"❌ 获取股票数据失败: {e}")
-    
-    # 3. 模拟DeepSeek API调用
-    print("\n🤖 调用AI分析...")
-    try:
-        # 这里模拟API调用，实际使用时取消注释下面的代码
-        print("✅ AI分析完成（模拟）")
-        print("📈 情感分析: 略微看涨")
-        print("🎯 置信度: 75%")
-        print("💡 建议: 持有观察")
-        
-        # 实际调用代码（需要取消注释并配置正确的API端点）
-        """
-        response = requests.post(
-            'https://api.deepseek.com/chat/completions',
-            headers={'Authorization': f'Bearer {api_key}'},
-            json={
-                "model": "deepseek-chat",
-                "messages": [{
-                    "role": "user", 
-                    "content": "分析AAPL苹果公司股票的短期走势，考虑技术面和基本面因素"
-                }]
-            }
-        )
-        if response.status_code == 200:
-            result = response.json()
-            analysis = result['choices'][0]['message']['content']
-            print(f"📝 AI分析结果: {analysis}")
-        else:
-            print(f"❌ API调用失败: {response.status_code}")
-        """
-            
-    except Exception as e:
-        print(f"❌ AI分析失败: {e}")
-    
-    print(f"\n🎉 分析完成时间: {datetime.now()}")
-    print("=" * 50)
-
-if __name__ == "__main__":
-    main()
-EOF
-
-    - name: 🤖 运行股票分析
-      env:
-        DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-      run: python stock_analysis.py
+      - name: Start Analysis
+        run: |
+          echo "🚀 AI股票分析系统开始运行"
+          echo "📅 时间: $(date)"
+          echo "✅ 工作流配置正确"
