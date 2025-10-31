@@ -1,125 +1,27 @@
-import requests
-import os
-import pandas as pd
-from datetime import datetime
-import json
+name: AI Stock Analysis Bot
 
-# 配置信息
-GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzZlae78l_9Imlsmzv1hPAFQYuh9Vgl-MBvVEvwGUE3EyoZgbZFlzcEJ-rhZqWvf7TA/exec"  # 替换为实际URL
-DEEPSEEK_API_KEY = os.getenv('DEEPSEEK_API_KEY')
+on:
+  schedule:
+    - cron: '0 22 * * 1-5'
+  workflow_dispatch:
 
-def fetch_stock_data():
-    """从Google Sheets获取股票数据"""
-    print("📥 从Google Sheets获取股票数据...")
-    try:
-        response = requests.get(GOOGLE_SCRIPT_URL)
-        if response.status_code == 200:
-            data = response.json()
-            if data['status'] == 'success':
-                print(f"✅ 成功获取 {len(data['data'])} 只股票数据")
-                return data['data']
-            else:
-                print(f"❌ API返回错误: {data['message']}")
-        else:
-            print(f"❌ 请求失败: {response.status_code}")
-        return None
-    except Exception as e:
-        print(f"❌ 获取数据失败: {e}")
-        return None
-
-def analyze_stock_with_ai(stock_data):
-    """使用DeepSeek分析单只股票"""
-    if not DEEPSEEK_API_KEY:
-        return "❌ DeepSeek API密钥未设置"
+jobs:
+  analyze-stocks:
+    runs-on: ubuntu-latest
     
-    prompt = f"""
-    作为专业股票分析师，请分析{stock_data['symbol']}({stock_data['company']})的短期走势。
-    
-    当前数据：
-    - 当前价格: ${stock_data['price']}
-    - 涨跌幅: {stock_data['change_percent']}
-    - 更新时间: {stock_data['update_time']}
-    
-    请给出JSON格式的分析结果，包含：
-    1. sentiment (看涨/看跌/中性)
-    2. confidence (1-10的置信度)
-    3. reason (简要分析理由)
-    4. suggestion (操作建议)
-    """
-    
-    try:
-        # 模拟分析结果（实际使用时替换为真实API调用）
-        return {
-            "sentiment": "看涨",
-            "confidence": 7,
-            "reason": "价格表现稳定，技术面偏强",
-            "suggestion": "可以考虑轻仓介入",
-            "analysis_type": "模拟分析"
-        }
+    steps:
+    - name: Download code
+      uses: actions/checkout@v3
+      
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
         
-        # 真实API调用代码（需要时取消注释）
-        """
-        response = requests.post(
-            'https://api.deepseek.com/chat/completions',
-            headers={'Authorization': f'Bearer {DEEPSEEK_API_KEY}'},
-            json={
-                "model": "deepseek-chat",
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.1
-            }
-        )
-        return response.json()
-        """
-    except Exception as e:
-        return f"分析失败: {e}"
-
-def main():
-    print("=" * 60)
-    print("🚀 AI股票分析系统启动 - 基于Google Sheets数据")
-    print("=" * 60)
-    
-    # 1. 获取股票数据
-    stocks_data = fetch_stock_data()
-    if not stocks_data:
-        print("❌ 无法获取股票数据，程序退出")
-        return
-    
-    # 2. 分析每只股票
-    analysis_results = []
-    
-    for stock in stocks_data:
-        print(f"\n📊 分析 {stock['symbol']} - {stock['company']}")
-        print(f"   💰 价格: ${stock['price']} | 📈 涨跌幅: {stock['change_percent']}")
+    - name: Install dependencies
+      run: pip install -r requirements.txt
         
-        # AI分析
-        analysis = analyze_stock_with_ai(stock)
-        
-        if isinstance(analysis, dict):
-            print(f"   🎯 情感: {analysis['sentiment']}")
-            print(f"   ⭐ 置信度: {analysis['confidence']}/10")
-            print(f"   💡 建议: {analysis['suggestion']}")
-            print(f"   🔧 模式: {analysis['analysis_type']}")
-            
-            # 保存结果
-            analysis_results.append({
-                'symbol': stock['symbol'],
-                'company': stock['company'],
-                'price': stock['price'],
-                'change_percent': stock['change_percent'],
-                'analysis': analysis
-            })
-        else:
-            print(f"   ❌ {analysis}")
-    
-    # 3. 输出总结报告
-    print(f"\n{'='*60}")
-    print("📋 分析总结报告")
-    print(f"{'='*60}")
-    for result in analysis_results:
-        print(f"✅ {result['symbol']}: {result['analysis']['sentiment']} - {result['analysis']['suggestion']}")
-    
-    print(f"\n🎉 分析完成时间: {datetime.now()}")
-    print("=" * 60)
-
-if __name__ == "__main__":
-    main()
+    - name: Run Stock Analysis
+      env:
+        DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+      run: python stock_analysis.py
