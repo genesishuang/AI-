@@ -1,94 +1,125 @@
-name: 🚀 AI股票分析机器人
-
-on:
-  schedule:
-    - cron: '0 22 * * 1-5'  # 交易日北京时间早上6点运行
-  workflow_dispatch:  # 允许手动触发
-
-jobs:
-  analyze-stocks:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: 📥 下载代码
-      uses: actions/checkout@v3
-      
-    - name: 🐍 设置Python环境
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
-        
-    - name: 📦 安装依赖
-      run: |
-        pip install requests
-        pip install pandas
-        pip install yfinance
-        
-    - name: 📄 创建分析脚本
-      run: |
-        cat > stock_analysis.py << 'EOF'
 import requests
 import os
 import pandas as pd
-import yfinance as yf
 from datetime import datetime
+import json
+
+# 配置信息
+GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzZlae78l_9Imlsmzv1hPAFQYuh9Vgl-MBvVEvwGUE3EyoZgbZFlzcEJ-rhZqWvf7TA/exec"  # 替换为实际URL
+DEEPSEEK_API_KEY = os.getenv('DEEPSEEK_API_KEY')
+
+def fetch_stock_data():
+    """从Google Sheets获取股票数据"""
+    print("📥 从Google Sheets获取股票数据...")
+    try:
+        response = requests.get(GOOGLE_SCRIPT_URL)
+        if response.status_code == 200:
+            data = response.json()
+            if data['status'] == 'success':
+                print(f"✅ 成功获取 {len(data['data'])} 只股票数据")
+                return data['data']
+            else:
+                print(f"❌ API返回错误: {data['message']}")
+        else:
+            print(f"❌ 请求失败: {response.status_code}")
+        return None
+    except Exception as e:
+        print(f"❌ 获取数据失败: {e}")
+        return None
+
+def analyze_stock_with_ai(stock_data):
+    """使用DeepSeek分析单只股票"""
+    if not DEEPSEEK_API_KEY:
+        return "❌ DeepSeek API密钥未设置"
+    
+    prompt = f"""
+    作为专业股票分析师，请分析{stock_data['symbol']}({stock_data['company']})的短期走势。
+    
+    当前数据：
+    - 当前价格: ${stock_data['price']}
+    - 涨跌幅: {stock_data['change_percent']}
+    - 更新时间: {stock_data['update_time']}
+    
+    请给出JSON格式的分析结果，包含：
+    1. sentiment (看涨/看跌/中性)
+    2. confidence (1-10的置信度)
+    3. reason (简要分析理由)
+    4. suggestion (操作建议)
+    """
+    
+    try:
+        # 模拟分析结果（实际使用时替换为真实API调用）
+        return {
+            "sentiment": "看涨",
+            "confidence": 7,
+            "reason": "价格表现稳定，技术面偏强",
+            "suggestion": "可以考虑轻仓介入",
+            "analysis_type": "模拟分析"
+        }
+        
+        # 真实API调用代码（需要时取消注释）
+        """
+        response = requests.post(
+            'https://api.deepseek.com/chat/completions',
+            headers={'Authorization': f'Bearer {DEEPSEEK_API_KEY}'},
+            json={
+                "model": "deepseek-chat",
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.1
+            }
+        )
+        return response.json()
+        """
+    except Exception as e:
+        return f"分析失败: {e}"
 
 def main():
-    print("=" * 50)
-    print("🚀 AI股票分析系统启动")
-    print("=" * 50)
+    print("=" * 60)
+    print("🚀 AI股票分析系统启动 - 基于Google Sheets数据")
+    print("=" * 60)
     
-    # 1. 检查环境
-    api_key = os.getenv('DEEPSEEK_API_KEY')
-    if api_key:
-        print(f"✅ DeepSeek API密钥: 已配置 (前8位: {api_key[:8]}...)")
-    else:
-        print("❌ DeepSeek API密钥: 未配置")
+    # 1. 获取股票数据
+    stocks_data = fetch_stock_data()
+    if not stocks_data:
+        print("❌ 无法获取股票数据，程序退出")
         return
     
-    # 2. 获取股票数据
-    print("\n📊 获取股票数据...")
-    try:
-        # 获取AAPL股价
-        ticker = yf.Ticker("AAPL")
-        info = ticker.info
-        history = ticker.history(period="5d")
-        
-        current_price = history['Close'].iloc[-1] if not history.empty else "N/A"
-        previous_price = history['Close'].iloc[-2] if len(history) > 1 else "N/A"
-        
-        if current_price != "N/A":
-            print(f"📈 AAPL当前价格: ${current_price:.2f}")
-        else:
-            print("📈 AAPL当前价格: N/A")
-            
-        if previous_price != "N/A":
-            print(f"📉 前一日价格: ${previous_price:.2f}")
-        else:
-            print("📉 前一日价格: N/A")
-        
-    except Exception as e:
-        print(f"❌ 获取股票数据失败: {e}")
+    # 2. 分析每只股票
+    analysis_results = []
     
-    # 3. 模拟DeepSeek API调用
-    print("\n🤖 调用AI分析...")
-    try:
-        print("✅ AI分析完成（模拟）")
-        print("📈 情感分析: 略微看涨")
-        print("🎯 置信度: 75%")
-        print("💡 建议: 持有观察")
+    for stock in stocks_data:
+        print(f"\n📊 分析 {stock['symbol']} - {stock['company']}")
+        print(f"   💰 价格: ${stock['price']} | 📈 涨跌幅: {stock['change_percent']}")
+        
+        # AI分析
+        analysis = analyze_stock_with_ai(stock)
+        
+        if isinstance(analysis, dict):
+            print(f"   🎯 情感: {analysis['sentiment']}")
+            print(f"   ⭐ 置信度: {analysis['confidence']}/10")
+            print(f"   💡 建议: {analysis['suggestion']}")
+            print(f"   🔧 模式: {analysis['analysis_type']}")
             
-    except Exception as e:
-        print(f"❌ AI分析失败: {e}")
+            # 保存结果
+            analysis_results.append({
+                'symbol': stock['symbol'],
+                'company': stock['company'],
+                'price': stock['price'],
+                'change_percent': stock['change_percent'],
+                'analysis': analysis
+            })
+        else:
+            print(f"   ❌ {analysis}")
+    
+    # 3. 输出总结报告
+    print(f"\n{'='*60}")
+    print("📋 分析总结报告")
+    print(f"{'='*60}")
+    for result in analysis_results:
+        print(f"✅ {result['symbol']}: {result['analysis']['sentiment']} - {result['analysis']['suggestion']}")
     
     print(f"\n🎉 分析完成时间: {datetime.now()}")
-    print("=" * 50)
+    print("=" * 60)
 
 if __name__ == "__main__":
     main()
-EOF
-
-    - name: 🤖 运行股票分析
-      env:
-        DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-      run: python stock_analysis.py
