@@ -4,10 +4,11 @@ import pandas as pd
 from datetime import datetime
 import json
 
-# 配置 - 需要您填写Google Apps Script的URL
-GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzZlae78l_9Imlsmzv1hPAFQYuh9Vgl-MBvVEvwGUE3EyoZgbZFlzcEJ-rhZqWvf7TA/exec"
+# 配置信息
+GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbZ1ae78L_9Tmlsanz1hPAFQYuh9VgI-MBvVEwMdUE5FyOZgbZF1zcE3-rhZqAvf7TA/exec"
+DEEPSEEK_API_KEY = os.getenv('DEEPSEEK_API_KEY')
 
-def get_stock_data_from_sheets():
+def fetch_stock_data():
     """从Google Sheets获取股票数据"""
     print("📥 从Google Sheets获取股票数据...")
     try:
@@ -17,10 +18,13 @@ def get_stock_data_from_sheets():
             if data['status'] == 'success':
                 print(f"✅ 成功获取 {len(data['data'])} 只股票数据")
                 return data['data']
-        print(f"❌ 获取数据失败: {response.status_code}")
+            else:
+                print(f"❌ API返回错误: {data['message']}")
+        else:
+            print(f"❌ 请求失败: {response.status_code}")
         return None
     except Exception as e:
-        print(f"❌ 连接Google Sheets失败: {e}")
+        print(f"❌ 获取数据失败: {e}")
         return None
 
 def analyze_with_deepseek(stock_data):
@@ -36,7 +40,7 @@ def analyze_with_deepseek(stock_data):
             "analysis_type": "模拟分析"
         }
     
-    # 模拟分析 - 实际使用时调用真实API
+    # 模拟分析
     return {
         "sentiment": "看涨",
         "confidence": 7,
@@ -51,16 +55,11 @@ def main():
     print("=" * 60)
     
     # 从Google Sheets获取数据
-    stocks_data = get_stock_data_from_sheets()
+    stocks_data = fetch_stock_data()
     
     if not stocks_data:
-        print("❌ 无法从Google Sheets获取数据，使用备用数据源...")
-        # 备用方案：使用硬编码的股票列表
-        stocks_data = [
-            {'symbol': 'AAPL', 'company': 'Apple Inc', 'price': 175.0},
-            {'symbol': 'MSFT', 'company': 'Microsoft', 'price': 330.0},
-            {'symbol': 'TSLA', 'company': 'Tesla', 'price': 240.0}
-        ]
+        print("❌ 无法从Google Sheets获取数据")
+        return
     
     print(f"📊 分析 {len(stocks_data)} 只股票")
     print("-" * 60)
